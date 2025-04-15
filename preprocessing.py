@@ -41,7 +41,6 @@ def extract_wavelet_features(epochs, freqs=np.arange(8, 31), n_cycles=7):
     return features
 
 def load_and_preprocess(subject=4, run=14):
-    """Main preprocessing pipeline with wavelet-based feature extraction as a bonus step."""
     try:
         # File setup: create local data storage
         data_path = os.path.join(os.getcwd(), 'data')
