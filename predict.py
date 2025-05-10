@@ -2,42 +2,36 @@ import os
 import time
 import numpy as np
 import mne
-from preprocessing import extract_wavelet_features
 from train import build_pipeline
 
 def load_preprocessed_epochs(subject=4):
+    """Loads saved epochs from disk."""
     data_path = os.path.join(os.getcwd(), 'data')
     epochs_save_path = os.path.join(data_path, f'sub-{subject}_preprocessed-epo.fif')
     if os.path.exists(epochs_save_path):
-        epochs = mne.read_epochs(epochs_save_path, preload=True)
-        return epochs
+        return mne.read_epochs(epochs_save_path, preload=True)
     else:
         raise FileNotFoundError(f"Preprocessed file not found at {epochs_save_path}")
 
-def predict_stream(trained_model, epochs, features, delay=2.0):
-    labels = epochs.events[:, -1]
-    predictions = []
+def predict_stream(pipeline, X, y, delay=2.0):
+    """Simulate real-time prediction with a delay per epoch."""
     print("Starting real-time simulation prediction...")
-    
-    for i, feat in enumerate(features):
-        feat = feat.reshape(1, -1)
-        pred = trained_model.predict(feat)
-        predictions.append(pred[0])
-        truth = labels[i]
-        print(f"Epoch {i:02d}: Prediction = {pred[0]}, Truth = {truth}, Correct: {pred[0]==truth}")
+    for i, x in enumerate(X):
+        pred = pipeline.predict(x[np.newaxis, ...])[0]
+        print(f"Epoch {i:02d}: Prediction = {pred}, Truth = {y[i]}, Correct = {pred==y[i]}")
         time.sleep(delay)
-    
-    accuracy = np.mean(np.array(predictions) == labels)
-    print("\nOverall simulated streaming accuracy: {:.4f}".format(accuracy))
+    overall_acc = np.mean(pipeline.predict(X) == y)
+    print("\nOverall simulated streaming accuracy: {:.4f}".format(overall_acc))
 
 def predict_model(subject=4):
+    """Load epochs, train CSP+LDA, and run real-time simulation."""
     epochs = load_preprocessed_epochs(subject)
-    features = extract_wavelet_features(epochs)
-    labels = epochs.events[:, -1]
-    # In this example, we train a pipeline on the fly (or you could load a saved model)
+    X = epochs.get_data()               # raw epoch data
+    y = epochs.events[:, -1]            # labels
+    
     pipeline = build_pipeline()
-    pipeline.fit(features, labels)
-    predict_stream(pipeline, epochs, features)
+    pipeline.fit(X, y)
+    predict_stream(pipeline, X, y)
 
 if __name__ == "__main__":
     predict_model(subject=4)

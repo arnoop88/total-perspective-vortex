@@ -1,44 +1,46 @@
 import os
 import numpy as np
-from sklearn.decomposition import PCA
+import mne
+from mne.decoding import CSP
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
-import mne
-from preprocessing import extract_wavelet_features  # Import function from preprocessing.py
 
 def load_preprocessed_epochs(subject=4):
+    """Loads saved epochs from disk."""
     data_path = os.path.join(os.getcwd(), 'data')
     epochs_save_path = os.path.join(data_path, f'sub-{subject}_preprocessed-epo.fif')
     if os.path.exists(epochs_save_path):
-        epochs = mne.read_epochs(epochs_save_path, preload=True)
-        return epochs
+        return mne.read_epochs(epochs_save_path, preload=True)
     else:
         raise FileNotFoundError(f"Preprocessed file not found at {epochs_save_path}")
 
-def build_pipeline(n_components=5):
-    pipeline = Pipeline([
-        ('pca', PCA(n_components=n_components)),
+def build_pipeline(n_components=4, reg=None, log=True):
+    """
+    CSP + LDA pipeline.
+      - n_components: how many spatial filters to keep
+      - reg: CSP regularization (None by default)
+      - log: whether to log-transform the variances
+    """
+    return Pipeline([
+        ('csp', CSP(n_components=n_components, reg=reg, log=log)),
         ('lda', LDA())
     ])
-    return pipeline
 
 def train_model(subject=4):
-    # Load saved epochs
+    """Load epochs, train CSP+LDA, and report 5-fold CV accuracy."""
     epochs = load_preprocessed_epochs(subject)
-    # Recompute features from the loaded epochs
-    features = extract_wavelet_features(epochs)
-    # Assume labels are obtained from the epochs events (last column in the events array)
-    labels = epochs.events[:, -1]
+    X = epochs.get_data()                 # shape: (n_epochs, n_channels, n_times)
+    y = epochs.events[:, -1]              # labels
     
     pipeline = build_pipeline()
-    scores = cross_val_score(pipeline, features, labels, cv=5)
+    scores = cross_val_score(pipeline, X, y, cv=5)
     print("Cross-validation scores:", scores)
     print("Mean accuracy: {:.4f}".format(np.mean(scores)))
     
-    # Optionally, fit the pipeline on the entire dataset and return it
-    pipeline.fit(features, labels)
+    # Fit on full data for later use
+    pipeline.fit(X, y)
     return pipeline
 
 if __name__ == "__main__":
-    trained_model = train_model(subject=4)
+    train_model(subject=4)
