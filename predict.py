@@ -1,19 +1,7 @@
-import os
 import time
 import argparse
 import numpy as np
-import mne
-from train import build_pipeline
-
-def load_preprocessed_epochs(subject, run):
-    """Loads saved epochs from disk for a given subject and run."""
-    data_path = os.path.join(os.getcwd(), 'data')
-    fname = f'sub-{subject}_run-{run}_preprocessed-epo.fif'
-    epochs_save_path = os.path.join(data_path, fname)
-    if os.path.exists(epochs_save_path):
-        return mne.read_epochs(epochs_save_path, preload=True)
-    else:
-        raise FileNotFoundError(f"Preprocessed file not found: {epochs_save_path}")
+from train import build_pipeline, load_preprocessed_epochs
 
 def predict_stream(pipeline, X, y, delay=2.0):
     """Simulate real-time prediction with a delay per epoch."""
