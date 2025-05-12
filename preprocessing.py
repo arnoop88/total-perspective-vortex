@@ -100,7 +100,7 @@ def load_and_preprocess(subject=4, run=14):
         print(f"Extracted features (shape: {features.shape})")
         
         # Save preprocessed epochs data to a file
-        epochs_save_path = os.path.join(data_path, f'sub-{subject}_preprocessed-epo.fif')
+        epochs_save_path = os.path.join(data_path, f'sub-{subject}_run-{run}_preprocessed-epo.fif')
         epochs.save(epochs_save_path, overwrite=True)
         print(f"Preprocessed data saved to {epochs_save_path}")
         
