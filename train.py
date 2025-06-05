@@ -7,6 +7,8 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
 
+mne.set_log_level('ERROR')
+
 def load_preprocessed_epochs(subject, run):
     """Loads saved epochs from disk for a given subject and run."""
     data_path = os.path.join(os.getcwd(), 'data')
@@ -27,15 +29,14 @@ def build_pipeline(n_components=4, reg=None, log=True):
 def train_model(subject, run):
     """Load epochs, run 5-fold CV with CSP+LDA, report mean accuracy."""
     epochs = load_preprocessed_epochs(subject, run)
-    X = epochs.get_data()           # (n_epochs, n_channels, n_times)
-    y = epochs.events[:, -1]        # labels
+    X = epochs.get_data()
+    y = epochs.events[:, -1]
 
     pipeline = build_pipeline()
     scores = cross_val_score(pipeline, X, y, cv=5)
     print("Cross-validation scores:", np.round(scores, 4))
     print("Mean accuracy: {:.4f}".format(np.mean(scores)))
 
-    # Fit on the full dataset (for later use or saving)
     pipeline.fit(X, y)
     return pipeline
 
